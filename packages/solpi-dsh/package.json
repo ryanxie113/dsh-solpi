@@ -1,0 +1,11 @@
+{
+  "name": "solpi-dsh",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Port of SoL-Pi's four harness efficiency mechanisms (Action Fusion, ObservationPack, Evidence-Preserving Reducer, Online Context Compact) to DeepSeek Harness (dsh). Scaffold only.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "peerDependenciesNote": "dsh / cordis 依赖待 Phase B 探针后按官方声明方式声明"
+}
