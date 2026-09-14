@@ -166,7 +166,28 @@ T4 后实施修复：breakeven 分子计入 summarizer 自身执行成本
    ②非诊断命令原本无声消失 → 新增 `not-diagnostic` 事件并附 cmdPrefix，
    T5 实测成功拦截一条 `ls -laR`（2104B）。
 
-## 待办
+## 三项修复后的全量复跑（2026-09-14 晚，第二轮验证）
+
+vanilla 臂未动不重跑；solpi 臂重测 vs 各自历史基线。额外发现并修复了第三个病灶
+（OCC summarizer 截断风暴），已在本轮 T3 中实战验证熔断生效。
+
+| 任务 | 修正前基线 | 复跑结果 | 判定 |
+|---|---|---|---|
+| T1 诊断修复循环 | 277.5s / 13 req（压缩风暴） | **116.1s / 8 req**（修正后首测 127.6s，两轮一致） | ✅ −58%，距 vanilla (95.7s) 仅余 +21% |
+| T2 链式编辑 | 544s（幻觉合规）/ AF 修复后 255s | 284s；then_run 融合 4 次（1 成功 3 失败即写入后验证暴露问题，符合设计）、coach 触发 2 次 | ✅ ≈−48%；模型使用率有轮次波动（上轮 13/13，本轮部分手动），单轮采样噪声需均值平滑 |
+| T3 文档记忆问答 | 200.8s / 2 epoch / 8 保真分 | **133.6s / 0 epoch** / **8/8 保真全对**；中途两次 token-cap 截断 → 熔断器打开拦住后续重试 | ✅ −33%，且保真不掉分 |
+| T4 长程逐模块 | 1168s / 22 epoch | 未重跑（~20 分钟成本）；预期同步受益于 gate 经济修正 + 新熔断 | ⏸ 留待下次大版本验收 |
+
+### 本轮新发现与修复：OCC summarizer 截断风暴
+
+T3 首轮复跑中 5 次 compaction 全部死于 `summarization truncated at the token cap`
+（GLM Flash 输出失控被 token 上限掊断，checkpoint 不完整），而 gate 无失败记忆、
+每个 step 边界照旧批经济闸 → 重试风暴烧掉 ~100s。这与 EPR 的 max-tokens 是同一疾病
+（小模型输出失控）的两个器官。
+
+**修复（熔断器）**：state 新增 `summarizerFailures` 连败计数，≥2 后本会话 gate 直接
+返回 `summarizer_circuit_open`（compact=false，fail-open 到 vanilla 压力路径）；
+成功落地即清零。复跑实测：2 次截断后熔断打开，后续 gate 全部拦截，不再空烧。
 
 - [x] T2 已跑：AF 零触发（GLM Flash 幻觉式合规，telemetry 抓到铁证）
 - [x] T3 已跑：38KB 文档记忆问答，压缩后 8/8 保真成立但时长 ×4

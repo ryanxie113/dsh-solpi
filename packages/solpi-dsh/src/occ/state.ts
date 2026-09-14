@@ -37,6 +37,9 @@ export type OnlineState = {
 	readonly nativeCompactionCount: number
 	readonly cacheDebtTokens: number
 	readonly cacheDebtRepaymentTokens: number
+	/** Consecutive summarizer failures (e.g. token-cap truncation); >=2 opens
+	 *  a circuit that vetoes further compaction this session (fail-open to vanilla). */
+	readonly summarizerFailures: number
 }
 
 export function initialOnlineState(): OnlineState {
@@ -54,6 +57,7 @@ export function initialOnlineState(): OnlineState {
 		nativeCompactionCount: 0,
 		cacheDebtTokens: 0,
 		cacheDebtRepaymentTokens: 0,
+		summarizerFailures: 0,
 	}
 }
 
@@ -117,6 +121,7 @@ export function parseOnlineState(value: unknown): OnlineState | undefined {
 		|| !nonNegativeInteger(record.nativeCompactionCount)
 		|| !finiteNonNegative(record.cacheDebtTokens)
 		|| !finiteNonNegative(record.cacheDebtRepaymentTokens)
+		|| !nonNegativeInteger(record.summarizerFailures)
 	) {
 		return undefined
 	}
@@ -134,6 +139,7 @@ export function parseOnlineState(value: unknown): OnlineState | undefined {
 		nativeCompactionCount: record.nativeCompactionCount,
 		cacheDebtTokens: record.cacheDebtTokens,
 		cacheDebtRepaymentTokens: record.cacheDebtRepaymentTokens,
+		summarizerFailures: record.summarizerFailures,
 	}
 }
 
@@ -181,7 +187,12 @@ export function recordCompaction(
 		nativeCompactionCount: state.nativeCompactionCount + 1,
 		cacheDebtTokens: Math.max(0, debt.debtTokens),
 		cacheDebtRepaymentTokens: Math.max(0, debt.repaymentTokens),
+		summarizerFailures: 0,
 	}
+}
+
+export function recordSummarizerFailure(state: OnlineState): OnlineState {
+	return { ...state, summarizerFailures: state.summarizerFailures + 1 }
 }
 
 export function recordCorrection(state: OnlineState): OnlineState {

@@ -40,7 +40,7 @@ import { DEFAULT_COMPACTION_ECONOMICS, decideCompaction } from './occ/economics.
 import type { CompactionDecision } from './occ/economics.ts'
 import { analyzePlanTransition, formatPlanSnapshot, parsePlanSteps } from './occ/plan.ts'
 import type { PlanStep } from './occ/plan.ts'
-import { OnlineStateStore, initialOnlineState, recordBoundary, recordCompaction, recordProviderRequest } from './occ/state.ts'
+import { OnlineStateStore, initialOnlineState, recordBoundary, recordCompaction, recordProviderRequest, recordSummarizerFailure } from './occ/state.ts'
 import type { OnlineState, ProgressSummary } from './occ/state.ts'
 import { logEvent } from './telemetry.ts'
 
@@ -220,6 +220,15 @@ class SolpiCompactionEngine extends BasicCtor {
 			economics: DEFAULT_COMPACTION_ECONOMICS,
 		})
 
+		// Circuit breaker: after consecutive summarizer failures (observed on
+		// GLM Flash in benchmark T3: five straight token-cap truncations burned
+		// ~100s of retry), stop paying for compaction this session — fail open
+		// to vanilla and let the pressure path handle the window instead.
+		if (this.state.summarizerFailures >= 2) {
+			void logEvent({ kind: 'occ-gate', session: agent.session.id, reason: 'summarizer_circuit_open', writeTokens, archiveTokens, horizon: 0, breakeven: null, compact: false })
+			return null
+		}
+
 		console.log(`[solpi-dsh/occ] gate=${decision.reason} write=${writeTokens} archive=${archiveTokens} horizon=${decision.expectedRemainingRequests} breakeven=${decision.breakevenRequests}`)
 		void logEvent({ kind: 'occ-gate', session: agent.session.id, reason: decision.reason, writeTokens, archiveTokens, horizon: decision.expectedRemainingRequests, breakeven: decision.breakevenRequests, compact: decision.compact })
 		if (!decision.compact) return null
@@ -257,6 +266,8 @@ class SolpiCompactionEngine extends BasicCtor {
 				// Durable-progress philosophy: keep an already-landed compaction and
 				// stop; a first-attempt failure surfaces to the caller's warning path.
 				if (result !== null || signal?.aborted) break
+				this.state = recordSummarizerFailure(this.state)
+				await this.persist()
 				throw error
 			}
 			measured = meter.measure(agent.session)
