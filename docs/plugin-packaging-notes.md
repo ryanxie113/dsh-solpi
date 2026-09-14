@@ -107,3 +107,9 @@ events.jsonl 实弹：14 事件 = occ-gate×6 / occ-result×2 / af-then-run×4(�
 
 遗留观测点：occ-result.totalAfter≈15.6k 而窗口 262k——短任务离压缩门槛远属预期；
 epr-applied（≥4KB 诊断输出自然触发）仍待更重的失败堆栈场景。
+
+## 6. 社区发布（2026-09-14）
+
+- Discussion 已发布：<https://github.com/deepseek-ai/deepseek-harness/discussions/6577>
+  （官方分类 **Show Your Plugins!**，四机制介绍 + 实测数据 + build notes ×4 + 三提案链接）
+- 草稿存档：`docs/discussion-post.md`；帖后监控回复，若维护者回应提案按反馈修订后提 issue

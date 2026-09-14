@@ -38,6 +38,10 @@ LLM provider/model 等环境配置由你的 profile 提供。安装细节三通�
 
 基于 dsh `0.1.5-rc.2`（developer preview）开发与验收；dsh 升级后需重跑对照。
 
+## Community
+
+- 介绍帖：[deepseek-ai/deepseek-harness#6577](https://github.com/deepseek-ai/deepseek-harness/discussions/6577)（Show Your Plugins!）
+
 ## License
 
 MIT。本项目为独立实现，未包含其他项目的代码。
