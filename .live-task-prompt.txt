@@ -1,0 +1,8 @@
+在 /tmp/solpi-live 目录（不存在则创建）搭建一个最小 TypeScript 计算器项目：
+1. 写 package.json：type 为 module，test 脚本为 "node --experimental-strip-types --test"
+2. 写 src/calc.ts：实现 add、sub、mul、div 四个函数并 export
+3. 写 test/calc.test.ts：用 node:test 写四个用例——add(1,2)===3、sub(5,3)===2、mul(2,4)===8，以及 div 用例故意写错预期 div(6,2)===4 以制造失败
+4. 运行 npm test 查看完整输出，根据失败详情修复 test 中 div 的预期值为 3，然后再次运行测试确认全部通过
+5. 最后用一两句话报告最终测试结果摘要
+
+要求：每次修改文件都通过 edit/write 工具的 thenRun 参数直接串联后续测试命令；所有命令输出都要完整保留以便分析。

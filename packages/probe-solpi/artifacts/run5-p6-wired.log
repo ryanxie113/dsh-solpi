@@ -1,0 +1,38 @@
+$ node --import tsx/esm apps/cli/src/bin.ts --profile headless --patch /Users/ryan.xie1/Mywork/code/dsh-solpi/packages/probe-solpi/cordis.dev.yml 'Use the solpi_probe_echo tool once with name Dave, then say done.'
+[solpi-probe] apply() entered; tools service ready = true
+[solpi-probe] defineTool resolved: true
+[solpi-probe] registered tool solpi_probe_echo
+[solpi-probe] tools/post-execute prepend listener installed
+/Users/ryan.xie1/tools/deepseek-harness/packages/boot/app-boot/src/index.ts:832
+    throw new Error(`${binName}: ${stage}: ${detail}${stack}`, { cause })
+          ^
+
+Error: dsh: plugin tree failed to load: failed to apply loader entry include (cordis:include): failed to apply loader entry solpi-compaction-probe (file:///Users/ryan.xie1/Mywork/code/dsh-solpi/packages/probe-solpi/src/compaction-probe.ts): this._registerAutomaticCompaction is not a function
+TypeError: this._registerAutomaticCompaction is not a function
+    at new ProbeCompactionEngine (/Users/ryan.xie1/Mywork/code/dsh-solpi/packages/probe-solpi/src/compaction-probe.ts:26:68)
+    at Fiber.execute (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/fiber.ts:253:30)
+    at <anonymous> (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/fiber.ts:366:45)
+    at file:///Users/ryan.xie1/Mywork/code/dsh-solpi/.dsh-probe/profiles/headless/#solpi-compaction-probe
+    at file:///Users/ryan.xie1/Mywork/code/dsh-solpi/.dsh-probe/profiles/headless/#include
+    at boot (/Users/ryan.xie1/tools/deepseek-harness/packages/boot/app-boot/src/index.ts:832:11)
+    at async runProfile (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/profile-boot.ts:336:15)
+    at async runCli (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/bin.ts:34:7)
+    at async <anonymous> (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/bin.ts:65:3) {
+  [cause]: Error: failed to apply loader entry include (cordis:include): failed to apply loader entry solpi-compaction-probe (file:///Users/ryan.xie1/Mywork/code/dsh-solpi/packages/probe-solpi/src/compaction-probe.ts): this._registerAutomaticCompaction is not a function
+      at updateError (/Users/ryan.xie1/tools/deepseek-harness/vendor/loader/src/config/entry.ts:26:10)
+      at Entry._init (/Users/ryan.xie1/tools/deepseek-harness/vendor/loader/src/config/entry.ts:287:13) {
+    [cause]: Error: failed to apply loader entry solpi-compaction-probe (file:///Users/ryan.xie1/Mywork/code/dsh-solpi/packages/probe-solpi/src/compaction-probe.ts): this._registerAutomaticCompaction is not a function
+        at updateError (/Users/ryan.xie1/tools/deepseek-harness/vendor/loader/src/config/entry.ts:26:10)
+        at Entry._init (/Users/ryan.xie1/tools/deepseek-harness/vendor/loader/src/config/entry.ts:287:13) {
+      [cause]: TypeError: this._registerAutomaticCompaction is not a function
+          at new ProbeCompactionEngine (/Users/ryan.xie1/Mywork/code/dsh-solpi/packages/probe-solpi/src/compaction-probe.ts:26:68)
+          at Fiber.execute (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/fiber.ts:253:30)
+          at <anonymous> (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/fiber.ts:366:45)
+          at file:///Users/ryan.xie1/Mywork/code/dsh-solpi/.dsh-probe/profiles/headless/#solpi-compaction-probe
+          at file:///Users/ryan.xie1/Mywork/code/dsh-solpi/.dsh-probe/profiles/headless/#include
+    }
+  }
+}
+
+Node.js v24.12.0
+[ELIFECYCLE] Command failed with exit code 1.

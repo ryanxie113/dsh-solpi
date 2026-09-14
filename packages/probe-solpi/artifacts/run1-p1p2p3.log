@@ -1,0 +1,8 @@
+$ node --import tsx/esm apps/cli/src/bin.ts --profile headless --patch /Users/ryan.xie1/Mywork/code/dsh-solpi/packages/probe-solpi/cordis.dev.yml 'Call the solpi_probe_echo tool exactly once with name set to Ada. Then answer: (1) quote verbatim every line of the tool result that contains the string [solpi-probe]; (2) state whether a full-copy archive locator path appears in the tool result and if so print that path.'
+[solpi-probe] apply() entered; tools service ready = true
+[solpi-probe] defineTool resolved: true
+[solpi-probe] registered tool solpi_probe_echo
+[solpi-probe] tools/post-execute prepend listener installed
+
+dsh: PI_AI_ERROR: No API key for provider: qwen-proxy
+[ELIFECYCLE] Command failed with exit code 1.

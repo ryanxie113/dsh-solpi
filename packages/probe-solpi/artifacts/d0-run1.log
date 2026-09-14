@@ -1,0 +1,18 @@
+$ node --import tsx/esm apps/cli/src/bin.ts --profile headless --patch /tmp/d0-overlay.yml 'Call the d0_llm_probe tool with question '"'"'capital of France, one word'"'"' and report its raw output.'
+[d0] apply entered; config={"probeMark":"FROM-YML"} probeMark=FROM-YML
+[d0] tool d0_llm_probe registered
+dsh: reasoning:
+The user wants me to call the d0_llm_probe tool with the question 'capital of France, one word' and report its raw output. This is a simple, direct request. Let me call the tool.
+dsh: reasoning:
+The tool returned its raw output. Let me report it verbatim.
+The `d0_llm_probe` tool returned the following raw output:
+
+```json
+{"ok":true,"aggregatedChars":31,"replyText":"France's capital city is Paris.","finishReason":"[object Object]"}
+```
+
+Field breakdown:
+- `ok`: `true` — the probe call succeeded
+- `aggregatedChars`: `31` — character count of the reply text
+- `replyText`: `"France's capital city is Paris."` — the model's answer
+- `finishReason`: `"[object Object]"` — note this appears to be a stringification bug in the probe tool (an object was coerced to string rather than serialized), so the actual finish reason detail is lost

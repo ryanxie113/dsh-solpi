@@ -1,11 +1,35 @@
 {
   "name": "solpi-dsh",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Port of SoL-Pi's four harness efficiency mechanisms (Action Fusion, ObservationPack, Evidence-Preserving Reducer, Online Context Compact) to DeepSeek Harness (dsh). Scaffold only.",
+  "version": "0.1.0",
+  "description": "Port of SoL-Pi's four harness efficiency mechanisms (Action Fusion, ObservationPack, Evidence-Preserving Reducer, Online Context Compact) as a DeepSeek Harness bundle.",
   "license": "MIT",
+  "type": "module",
+  "main": "lib/online-context-compact.mjs",
+  "files": [
+    "lib/**/*.mjs",
+    "cordis.patch.yml"
+  ],
+  "exports": {
+    "./action-fusion": "./lib/action-fusion.mjs",
+    "./observation-pack": "./lib/observation-pack.mjs",
+    "./evidence-preserving-reducer": "./lib/evidence-preserving-reducer.mjs",
+    "./online-context-compact": "./lib/online-context-compact.mjs",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepare": "tsdown",
+    "test": "node --experimental-strip-types tests/telemetry-units.ts"
+  },
   "engines": {
     "node": ">=22.19"
   },
-  "peerDependenciesNote": "dsh / cordis 依赖待 Phase B 探针后按官方声明方式声明"
+  "devDependencies": {
+    "tsdown": "^0.22.2"
+  }
 }

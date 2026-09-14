@@ -1,0 +1,58 @@
+# Phase D: full-stack — Action Fusion + ObservationPack + Evidence-Preserving Reducer.
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      qwen-proxy:
+        api: openai-completions
+        baseURL: http://<QWEN_PROXY_HOST>:30000/v1
+        apiKeyEnv: SOLPI_QWEN_PROXY_DUMMY_KEY
+        models:
+          - id: GLM-5.3-Flash
+            name: GLM-5.3-Flash
+            contextWindow: 262144
+            maxTokens: 65536
+            input: [text]
+
+- id: agent-default-model
+  name: '@deepseek-ai/dsh-agent-default-model'
+  config:
+    provider: qwen-proxy
+    model: GLM-5.3-Flash
+
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+  disabled: true
+
+- id: compaction-basic
+  name: '@deepseek-ai/dsh-compaction-basic'
+  disabled: true
+
+- id: spill-policy
+  name: '@deepseek-ai/dsh-spill-policy'
+  config:
+    maxInlineBytes: 10240
+
+- insert:
+    - id: solpi-dsh-action-fusion
+      name: '<REPO_ROOT>/packages/solpi-dsh/src/action-fusion.ts'
+    - id: solpi-dsh-op
+      name: '<REPO_ROOT>/packages/solpi-dsh/src/observation-pack.ts'
+      config:
+        maxInlineBytes: 10240
+    - id: solpi-dsh-epr
+      name: '<REPO_ROOT>/packages/solpi-dsh/src/evidence-preserving-reducer.ts'
+    - id: solpi-dsh-occ
+      name: '<REPO_ROOT>/packages/solpi-dsh/src/online-context-compact.ts'
+      config:
+        keepRecentTokens: 5000
+        cacheWriteReadRatio: 1.4
+        summaryTokenEstimate: 700
+
+# Web 会话经 agent-presets 的 isolate realm 挂工具（preset 层重挂了 stock tool-fs，
+# 盖过根 realm 的融合注册）。指向我们的 solpi-standard 预设副本：
+# .dsh-probe/.agent-presets/solpi-standard/ —— 已移除其 tool-fs 重挂并显式插入融合插件。
+- id: agent-presets
+  name: '@deepseek-ai/dsh-agent-presets'
+  config:
+    default: solpi-standard

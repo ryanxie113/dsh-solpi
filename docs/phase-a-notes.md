@@ -94,3 +94,21 @@
 - dsh API 快速漂移（developer preview）：本文所有行号为 commit `c291e79` 时点值，升级需重跑对照。
 - `purpose` 闭合联合 & surface 替换 API 的具体导出面（哪些函数从 `@deepseek-ai/dsh-session` 公开导出）未逐一核对导出清单，Phase B 写探针时确认。
 - FULL_SENDS 宽限若要保真移植，需要在 pre-step 钩子自行计数请求轮次——复杂度高于 pi 投影法，Phase C 设计评审时决定取舍（候选：接受"首请求即预览"简化）。
+
+## Phase C 追记（2026-09-11）
+Phase C（AF+OP 移植实作与验收）已完成，结论与全部证据不落本文件——见 `docs/plans/dsh-solpi-spec.md` §9 实作实录。对本文档读者的三个直接影响：
+1. §Q6 装载结论追加惯用式：out-of-tree TS 入口用 async `apply()` + `await import(pathToFileURL(abs))`（require 解析 ESM-TS 不可行、top-level await 过不了 esbuild transform）。
+2. §Q5/Q3 的配置传递修订：insert entry 支持 `config` 直传（cordis `EntryOptions.config → fiber.update`），无 zod schema 时插件内部 normalize——OP 阈值即走此路径。
+3. OP 不再按原计划重造：dsh 原生 spill-policy 与 pi ObservationPack 同构，Phase C 采用组合层薄封装（决策 B）；P8（ctx.shell 承载 then_run）实证可行，AF 即构建其上。
+
+## Phase D 追记（2026-09-11）
+EPR 已实装并验收（详见 spec §10）。对本文档读者的直接影响：
+1. §B-EPR-1/P5 关闭：dsh bash 的全量输出经 `value.stdout.spillPath`（CollectedOutput）+ render 内嵌 "full output:" 标记获取，与 pi 的 untruncated-file 契约同构。
+2. llm 一次调用无需扩展 purpose 联合——GenerateOptions 有独立 `system` 字段；finishReason 需剥 `{"kind":…}` 信封。
+3. Out-of-tree Config 定案：导出 schemastery Config 即被 loader 解析（缺省物化）；无 `.optional()`，可选字段裸声明。
+
+## Phase E 追记（2026-09-11）
+OCC 已实装并验收，四机制全部完成（详见 spec §11）。直接影响本文读者的三点：
+1. §Q4 压缩缝的最终形态确认：子类继承 BasicCompactionEngine、只覆写压力分支门控，机械全继承——"SoL-Pi 决定何时压，dsh 决定怎么压"。
+2. dsh 无原生 update_plan 步骤工具（plan-mode 是另一回事）；OCC 边界源需随插件自带 `solpi_update_plan`。
+3. 类形态插件的服务依赖声明必须用 `static inject`（模块级 export inject 对类形态无效）。

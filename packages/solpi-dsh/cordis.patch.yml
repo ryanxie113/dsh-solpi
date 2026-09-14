@@ -1,0 +1,31 @@
+# solpi-dsh bundle layer (docs/user/develop/basic/publish.md §bundle).
+# Applied when a profile lists this package in dsh.profile.bundles.
+# Rows reference our own modules by package name; Node resolves them from the
+# profile's node_modules. Stock-row overrides restate the full row (patch
+# replaces a row entirely, no deep merge).
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+  disabled: true # Action Fusion registers the fused write/edit suite instead
+
+- id: compaction-basic
+  name: '@deepseek-ai/dsh-compaction-basic'
+  disabled: true # Online Context Compact extends and replaces this engine
+
+- insert:
+    - id: solpi-dsh-action-fusion
+      name: 'solpi-dsh/action-fusion'
+
+    - id: solpi-dsh-op
+      name: 'solpi-dsh/observation-pack'
+      config:
+        maxInlineBytes: 10240
+
+    - id: solpi-dsh-epr
+      name: 'solpi-dsh/evidence-preserving-reducer'
+
+    - id: solpi-dsh-occ
+      name: 'solpi-dsh/online-context-compact'
+      config:
+        keepRecentTokens: 5000
+        cacheWriteReadRatio: 1.4
+        summaryTokenEstimate: 700

@@ -1,0 +1,44 @@
+# SoL-Pi Phase B probe overlay over `dsh --profile headless`.
+# Mounts: qwen-proxy LLM route (pi's models.json, masked apiKey omitted — the
+# proxy takes no auth header), default-model override onto that route, and the
+# out-of-tree probe plugin by absolute path.
+#
+# Run:
+#   DSH_HOME=$PWD/.dsh-probe pnpm --dir ~/tools/deepseek-harness dsh \
+#     --profile headless --patch <REPO_ROOT>/packages/probe-solpi/cordis.dev.yml "<task>"
+
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      qwen-proxy:
+        api: openai-completions
+        baseURL: http://<QWEN_PROXY_HOST>:30000/v1
+        # The proxy takes no auth header, but the adapter still demands a
+        # credential reference for hand-declared routes — a dummy env value.
+        apiKeyEnv: SOLPI_QWEN_PROXY_DUMMY_KEY
+        models:
+          - id: GLM-5.3-Flash
+            name: GLM-5.3-Flash
+            contextWindow: 262144
+            maxTokens: 65536
+            input: [text]
+
+- id: agent-default-model
+  name: '@deepseek-ai/dsh-agent-default-model'
+  config:
+    provider: qwen-proxy
+    model: GLM-5.3-Flash
+
+# P6: replace the stock compaction backend with the probe subclass.
+- id: compaction-basic
+  name: '@deepseek-ai/dsh-compaction-basic'
+  disabled: true
+
+- insert:
+    - id: solpi-probe
+      name: '<REPO_ROOT>/packages/probe-solpi/src/index.ts'
+    - id: solpi-compaction-probe
+      name: '<REPO_ROOT>/packages/probe-solpi/src/compaction-probe.ts'
+    - id: solpi-require-spike
+      name: '<REPO_ROOT>/packages/probe-solpi/src/require-spike.ts'

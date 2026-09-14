@@ -1,0 +1,12 @@
+$ node --import tsx/esm apps/cli/src/bin.ts --profile headless --patch /Users/ryan.xie1/Mywork/code/dsh-solpi/packages/probe-solpi/cordis.dev.yml 'Use the solpi_probe_echo tool once with name Carol, then say done.'
+[solpi-probe-compaction] ProbeCompactionEngine constructed on service key "compaction"
+[solpi-probe] apply() entered; tools service ready = true
+[solpi-probe] defineTool resolved: true
+[solpi-probe] registered tool solpi_probe_echo
+[solpi-probe] tools/post-execute prepend listener installed
+dsh: reasoning:
+The user wants me to use the solpi_probe_echo tool once with name Carol, then say done. Simple task.
+[solpi-probe] post-execute saw text (first 200 chars): "Hello, Carol! This line comes from the solpi-probe tool body."
+[solpi-probe] spill saved: {"locator":"/var/folders/v2/dl02pbcx7gx35y53z5g8fp3h0000gq/T/dsh-spill-Lc0GFN/session-12c1ff13daa2/da8ba273ad43-solpi-probe-echo.txt","bytes":61,"hint":"Use read with offset/limit, or grep this path to search within it."}
+[solpi-probe] returning accept with replacement length 395
+done

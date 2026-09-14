@@ -1,0 +1,23 @@
+# 本机环境 LLM overlay（qwen-proxy 内网网关）。仅提供 provider/model 行——
+# 插件行已由 solpi-dsh bundle 层贡献，勿在此重复 insert（按 id 整行覆盖会退回
+# src 直跑形态，压掉 bundle 验证面）。
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      qwen-proxy:
+        api: openai-completions
+        baseURL: http://<QWEN_PROXY_HOST>:30000/v1
+        apiKeyEnv: SOLPI_QWEN_PROXY_DUMMY_KEY
+        models:
+          - id: GLM-5.3-Flash
+            name: GLM-5.3-Flash
+            contextWindow: 262144
+            maxTokens: 65536
+            input: [text]
+
+- id: agent-default-model
+  name: '@deepseek-ai/dsh-agent-default-model'
+  config:
+    provider: qwen-proxy
+    model: GLM-5.3-Flash

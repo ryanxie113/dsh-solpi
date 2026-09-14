@@ -1,0 +1,39 @@
+$ node --import tsx/esm apps/cli/src/bin.ts --profile headless --patch /Users/ryan.xie1/Mywork/code/dsh-solpi/.af-acceptance/../packages/solpi-dsh/cordis.phase-c.yml 'Create af-demo.js using the write tool with then_run set to {command: "node af-demo.js"}. The file content must be exactly: console.log('"'"'af-ok'"'"'). Afterward say what the then_run output was.'
+dsh: failed to apply loader entry solpi-dsh-action-fusion (file:///Users/ryan.xie1/Mywork/code/dsh-solpi/packages/solpi-dsh/src/action-fusion.ts): Reflect.has called on non-object
+/Users/ryan.xie1/tools/deepseek-harness/packages/boot/app-boot/src/index.ts:832
+    throw new Error(`${binName}: ${stage}: ${detail}${stack}`, { cause })
+          ^
+
+Error: dsh: plugin tree failed to load: failed to apply loader entry solpi-dsh-action-fusion (file:///Users/ryan.xie1/Mywork/code/dsh-solpi/packages/solpi-dsh/src/action-fusion.ts): Reflect.has called on non-object
+TypeError: Reflect.has called on non-object
+    at Reflect.has (<anonymous>)
+    at Inject.resolve (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/registry.ts:77:24)
+    at Proxy.plugin (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/registry.ts:330:54)
+    at Proxy.inject (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/registry.ts:301:17)
+    at Object.apply (/Users/ryan.xie1/Mywork/code/dsh-solpi/packages/solpi-dsh/src/action-fusion.ts:81:82)
+    at async Fiber._reload (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/fiber.ts:656:9)
+    at boot (/Users/ryan.xie1/tools/deepseek-harness/packages/boot/app-boot/src/index.ts:832:11)
+    at async runProfile (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/profile-boot.ts:336:15)
+    at async runCli (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/bin.ts:34:7)
+    at async <anonymous> (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/bin.ts:65:3) {
+  [cause]: Error: failed to apply loader entry solpi-dsh-action-fusion (file:///Users/ryan.xie1/Mywork/code/dsh-solpi/packages/solpi-dsh/src/action-fusion.ts): Reflect.has called on non-object
+      at updateError (/Users/ryan.xie1/tools/deepseek-harness/vendor/loader/src/config/entry.ts:26:10)
+      at Entry._await (/Users/ryan.xie1/tools/deepseek-harness/vendor/loader/src/config/entry.ts:273:13)
+      at async Promise.allSettled (index 88)
+      at async Proxy.await (/Users/ryan.xie1/tools/deepseek-harness/vendor/loader/src/config/tree.ts:53:24)
+      at async boot (/Users/ryan.xie1/tools/deepseek-harness/packages/boot/app-boot/src/index.ts:812:5)
+      at async runProfile (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/profile-boot.ts:336:15)
+      at async runCli (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/bin.ts:34:7)
+      at async <anonymous> (/Users/ryan.xie1/tools/deepseek-harness/apps/cli/src/bin.ts:65:3) {
+    [cause]: TypeError: Reflect.has called on non-object
+        at Reflect.has (<anonymous>)
+        at Inject.resolve (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/registry.ts:77:24)
+        at Proxy.plugin (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/registry.ts:330:54)
+        at Proxy.inject (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/registry.ts:301:17)
+        at Object.apply (/Users/ryan.xie1/Mywork/code/dsh-solpi/packages/solpi-dsh/src/action-fusion.ts:81:82)
+        at async Fiber._reload (/Users/ryan.xie1/tools/deepseek-harness/vendor/cordis/src/fiber.ts:656:9)
+  }
+}
+
+Node.js v24.12.0
+[ELIFECYCLE] Command failed with exit code 1.
