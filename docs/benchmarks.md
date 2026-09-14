@@ -42,10 +42,50 @@ epr-skip ×4（node --test 输出 3441/2538/1683/821 B 均 <4096B minBytes）；
 3. **AF 自然触发率低**：GLM Flash 在两组都倾向 edit 后手动 bash，未主动使用 thenRun 参数——
    收益未显现属指令跟随问题而非机制问题，待 T2 用显式引导验证。
 
+## T2：多模块修复 + AF 显式引导（4 模块 / 12 用例）
+
+solpi 版提示词硬性要求“每次修改用 thenRun 参数串联验证”，vanilla 版同信息量但按各自生态表述：
+
+| 指标 | vanilla | solpi |
+|---|---|---|
+| 总时长 | 111.8 s | **544.2 s** |
+| LLM 请求数 | 14 | 10 |
+| 工具调用 | 25 (bash×8) | 25 (bash×3, read×4) |
+| af-then-run 遥测 | — | **0 次触发** |
+| 任务完成 | ✅ pass 12 | ✅ pass 12 |
+
+**发现（本轮最有价值）：GLM Flash 幻觉式合规。** stdout 自述“每个 edit 均通过 then_run 串联”，
+但 session 流中全部 tool call 的 input 均无 thenRun 键——模型口头报告了不存在的工具用法。
+telemetry af-then-run=0 与叙述矛盾是铁证；上午实弹 af×4 成功的唯一区别是更短更聚焦的任务形态。
+AF 的实际收益受小模型指令跟随稳定性制约；工具描述强化待做。solpi 臂同时再次被 OCC 压缩风暴拖慢
+（16 start / 7 epoch），与 T1 结论一致。
+
+## T3：大文档记忆问答（38KB 事实文档 / 8 个数字题）
+
+强制三步形状（write 全文 → read 全文 → 凭记忆作答）。首轮发现单 request 会话 gate 零触发
+（无 step 边界，OCC 不介入单轮内）——改进为三步后才产生有效对照：
+
+| 指标 | vanilla | solpi |
+|---|---|---|
+| 总时长 | 49.3 s | **200.8 s** |
+| 答题得分 | **8/8** | **8/8** |
+| 压缩 | 0 | 2 epoch（occ-result totalAfter 19126 → 16530）|
+| gate 判定分布 | — | economic×4, non_positive_saving×1 |
+
+**发现：压缩后的信息保真成立。** solpi 臂在 read 全文被压缩成摘要块后，8 个精确数字题全对；
+但时长比 vanilla 高 4 倍（summarizer 自身请求开销）。结论与 T1 一致：在 262k 窗口远未吃紧时，
+OCC 是“质量无损但纯亏时间”的状态；它的价值区在窗口/成本受限的长会话。
+
+## 初版综合画像（T1–T3 六臂）
+
+1. 当前网关（GLM Flash）+ 默认配置下，四机制在短会话上无可测收益、只有开销；亏损主因单一且可配置规避。
+2. 三个机制边界事实首次实证：①小模型会幻觉式跳过 thenRun；②OCC 只在 step 边界评估；③摘要化后数字级事实保真可达。
+3. 插件的目标场景收敛假设：上下文逼近窗口上限或输入 token 成本敏感的多步长会话。此假设需 T4（逼近 262k 的长程演进任务）验证，本轮未覆盖。
+
 ## 待办
 
-- [ ] T2（AF 主场）：多文件改造 + 显式要求"每次修改用 thenRun 链接构建"，对比纯 AF 增益
-- [ ] T3（OCC 主场）：长程演进任务使上下文逼近门槛，对比压缩后的 token 曲线与完成质量
+- [x] T2 已跑：AF 零触发（GLM Flash 幻觉式合规，telemetry 抓到铁证）
+- [x] T3 已跑：38KB 文档记忆问答，压缩后 8/8 保真成立但时长 ×4
 - [ ] 提高 n（≥3 取中位）；补 inputTokens 计量通道（adapter usage 不落 session 流，
       可从 telemetry occ-gate writeTokens 序列近似）
 - [ ] 把"summarizer 成本计入 breakeven"作为第四条上游提案候选（本轮实测的直接产物）
