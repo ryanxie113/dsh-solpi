@@ -118,4 +118,55 @@ check('U3c likely-secret detector fires', LIKELY_SECRET.test('error trace\napi_k
 	check('U5 receipt smaller than 4096B minBytes threshold ⇒ economically viable for real logs', Buffer.byteLength(tiny) < 4096)
 }
 
+// ---- U6: max-tokens blowout + entry-level tight retry (mock stream) --------
+{
+	const { callReducer } = await import('../src/epr/provider.ts')
+	const { reducerInstructions } = await import('../src/epr/receipt.ts')
+	const GOOD_JSON = JSON.stringify({
+		schema: 'sol-pi-evidence-receipt/1',
+		source_sha256: ARCHIVE.hash,
+		status: 'failure',
+		uncertain: false,
+		evidence: [{ kind: 'fatal', quote: 'error[E0308]: mismatched types at src/main.rs:7' }],
+	})
+	const base = {
+		provider: 'mock', model: 'mock-model', maxOutputTokens: 2048,
+		timeoutMs: 5_000, commandSha256: 'c'.repeat(64), isError: true, archive: ARCHIVE, body: LOG,
+	}
+	const seenSystems: string[] = []
+	let calls = 0
+	function* streamOf(text: string, finish: string): AsyncGenerator<{ type: string, text?: string, reason?: string }> {
+		yield { type: 'text-delta', text }
+		yield { type: 'finish', reason: finish }
+	}
+	const llm = {
+		async *stream(options: { system?: string }) {
+			calls += 1
+			seenSystems.push(options.system ?? '')
+			if (calls === 1) return yield* streamOf('x'.repeat(4000), 'max-tokens')
+			return yield* streamOf(GOOD_JSON, 'stop')
+		},
+	} as never
+
+	// Single callReducer has NO internal retry (pipeline owns that policy)…
+	const single = await callReducer(base, llm as never)
+	check('U6a max-tokens finish is not ok at provider level', !single.ok && single.finishReason === 'max-tokens' && calls === 1)
+	check('U6b baseline system prompt is the canonical one', seenSystems[0] === reducerInstructions())
+	// …the pipeline retries once with tightened constraints; verify the shape.
+	const retry = await callReducer({ ...base, tight: true }, llm as never)
+	check('U6c tight retry succeeds on second call', calls === 2 && retry.ok && JSON.parse(retry.outputText).schema === 'sol-pi-evidence-receipt/1')
+	check('U6d tight retry carries hardened instructions', seenSystems[1]!.includes('exceeded the output budget') && seenSystems[1]!.length > reducerInstructions().length)
+
+	let calls2 = 0
+	const llmAlwaysBad = {
+		async *stream() {
+			calls2 += 1
+			return yield* streamOf('y'.repeat(5000), 'max-tokens')
+		},
+	} as never
+	await callReducer(base, llmAlwaysBad as never)
+	await callReducer({ ...base, tight: true }, llmAlwaysBad as never)
+	check('U6e persistent blowout yields two non-ok provider results', calls2 === 2)
+}
+
 process.exit(failures === 0 ? 0 : 1)

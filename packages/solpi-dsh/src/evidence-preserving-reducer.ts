@@ -83,10 +83,21 @@ export function apply(ctx: unknown, overrides?: EprOverrides): void {
 		async (exec: ExecLike, result: ResultLike, next: () => Promise<unknown>): Promise<unknown> => {
 			try {
 				const reducible = await reducibleToolResult(exec, result)
-				if (!reducible || !DIAGNOSTIC_COMMAND.test(reducible.command)) return await next()
+				if (!reducible) return await next()
+				if (!DIAGNOSTIC_COMMAND.test(reducible.command)) {
+					// Previously silent: a large non-diagnostic output vanished from
+					// analytics entirely (benchmark T5's 6016B mystery). Keep a trace.
+					void logEvent({ kind: 'epr-skip', reason: 'not-diagnostic', bytes: Buffer.byteLength(reducible.body, 'utf8'), cmdPrefix: reducible.command.slice(0, 120) })
+					return await next()
+				}
 				const { body, command } = reducible
-				void logEvent({ kind: 'epr-skip', reason: 'below-min-bytes', bytes: Buffer.byteLength(body, 'utf8'), minBytes: config.minBytes })
-				if (Buffer.byteLength(body, 'utf8') < config.minBytes) return await next()
+				// Metric moved below the threshold check: previously this event fired
+				// unconditionally for every candidate, polluting analytics (a large
+				// candidate that proceeded to the reducer was counted as a skip).
+				if (Buffer.byteLength(body, 'utf8') < config.minBytes) {
+					void logEvent({ kind: 'epr-skip', reason: 'below-min-bytes', bytes: Buffer.byteLength(body, 'utf8'), minBytes: config.minBytes })
+					return await next()
+				}
 				if (body.length > config.maxChars) {
 					journal('fallback', { reason: 'source-over-max-chars', sourceChars: body.length, maxChars: config.maxChars })
 					return await next()
@@ -106,7 +117,7 @@ export function apply(ctx: unknown, overrides?: EprOverrides): void {
 					sourcePath: archive.path,
 				})
 
-				const provider = await callReducer({
+				const reducerArgs = {
 					provider: config.reducerProvider,
 					model: config.reducerModel,
 					maxOutputTokens: config.maxOutputTokens,
@@ -115,7 +126,8 @@ export function apply(ctx: unknown, overrides?: EprOverrides): void {
 					isError: reducible.observedFailure,
 					archive,
 					body,
-				}, c.llm)
+				}
+				const provider = await callReducer(reducerArgs, c.llm)
 
 				journal('provider_response', {
 					sourceSha256: archive.hash,
@@ -126,12 +138,26 @@ export function apply(ctx: unknown, overrides?: EprOverrides): void {
 					totalTokens: provider.totalTokens,
 				})
 				if (!provider.ok) {
-					journal('fallback', {
-						sourceSha256: archive.hash,
-						reason: provider.finishReason === 'timeout' ? 'model-call-timeout' : 'model-response-error',
-						errorMessage: provider.errorMessage,
-					})
-					return await next()
+					// Output-budget blowout (observed on GLM Flash in benchmark T4:
+					// the reducer rambles until the cap instead of returning the
+					// small JSON receipt). Retry once with tightened constraints
+					// before giving up — cheap compared to losing the whole path.
+					if (provider.finishReason === 'max-tokens') {
+						const retry = await callReducer({ ...reducerArgs, tight: true }, c.llm)
+						journal('provider_response', { sourceSha256: archive.hash, provider: retry.provider, model: retry.model, finishReason: retry.finishReason, errorMessage: retry.errorMessage, totalTokens: retry.totalTokens, retry: 'tight-after-max-tokens' })
+						if (retry.ok) {
+							Object.assign(provider, retry)						} else {
+							journal('fallback', { sourceSha256: archive.hash, reason: 'model-response-error', errorMessage: retry.errorMessage })
+							return await next()
+						}
+					} else {
+						journal('fallback', {
+							sourceSha256: archive.hash,
+							reason: provider.finishReason === 'timeout' ? 'model-call-timeout' : 'model-response-error',
+							errorMessage: provider.errorMessage,
+						})
+						return await next()
+					}
 				}
 
 				const checked = validateReceipt(provider.outputText, archive, body, reducible.observedFailure)

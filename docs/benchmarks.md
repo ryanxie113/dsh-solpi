@@ -92,6 +92,9 @@ OCC 是“质量无损但纯亏时间”的状态；它的价值区在窗口/成
 
 ### 四个关键发现
 
+> **勘误（T5 复测后）**：本节第 4 条“EPR 被 OP 层叠挤压”为错误归因，已由后续实验推翻，见下方
+> 「EPR 归因修正」节。真凶是 reducer 模型 max-tokens 输出失控；OP 不在责任链上。
+
 1. **writeTokens 曲线证实 OCC 的机制效力：** solpi 臂从爬升峰位 24970 被持续压回 16–19k 震荡带
    （每步发送 token 有界化成立）——但在 262k 窗口 + 免费网关下这一属性无变现。
 2. **本规模长任务（总量 <60k tokens）四机制零收益、11 倍时长亏损。** 亏损主体仍是压缩 summarizer
@@ -146,6 +149,23 @@ T4 后实施修复：breakeven 分子计入 summarizer 自身执行成本
 终版质量 pass 12，requests 反超 vanilla（14）。遥测埋点同时重构：af-then-run 从渲染层
 迁至 fused pipeline 执行点并携带 session id，渲染函数回归纯函数。
 
+## EPR 归因修正 + 两处遥测/重试修复（T5 专项，2026-09-14 晚）
+
+针对「OP 层叠挤压 EPR」假设做了专项复验（同种子项目只修 2 模块 × 3 轮）：**假设被推翻**。
+
+真实机制链：
+
+1. **单文件 `node --test` 失败输出天生紧凑（1733–3368B < minBytes=4096），EPR 无候选是正确行为**——
+   只有全量 `npm test`（~70KB）才会过阈。T4 的 26 次 skip 中绝大多数是真 below-min-bytes。
+   EPR 的主场是 webpack/tsc/esbuild 级别的构建日志，不是 node:test 的紧凑失败渲染。
+2. **大候选的真凶是 reducer 输出失控**：journal 显示 6 次 provider 失败全部为
+   `finishReason=max-tokens`（GLM Flash 对 receipt JSON 指令置之不理狂输至 2048 token 掐断）。
+   **修复：入口层对 max-tokens 自动重试一次**，system 追加硬约束
+   （≤5 evidence items、quote ≤200 chars）；mock 单测 U6a–U6e 钉死该通路（含持续失控 fail-open）。
+3. **两处遥测缺陷顺手修复**：①`epr-skip` 此前对所有候选无条件误发（大候选被计成 skip）；
+   ②非诊断命令原本无声消失 → 新增 `not-diagnostic` 事件并附 cmdPrefix，
+   T5 实测成功拦截一条 `ls -laR`（2104B）。
+
 ## 待办
 
 - [x] T2 已跑：AF 零触发（GLM Flash 幻觉式合规，telemetry 抓到铁证）
@@ -153,4 +173,4 @@ T4 后实施修复：breakeven 分子计入 summarizer 自身执行成本
 - [ ] 提高 n（≥3 取中位）；补 inputTokens 计量通道（adapter usage 不落 session 流，
       可从 telemetry occ-gate writeTokens 序列近似）
 [x] summarizer 成本已入 breakeven（见经济修正验证节）；第四提案转为已落地修复
-- [ ] OP–EPR 层叠协调（T4：1 applied / 26 skip，spill 前置挤压 EPR 作用域）——Discussion 追评的最后一个前置
+[x] OP–EPR「层叠挤压」已证伪并撤回（T5 专项）；真凶 reducer max-tokens 失控 → tight-retry 已落地；EPR 主场=构建日志型输出，node:test 场景无候选属正确

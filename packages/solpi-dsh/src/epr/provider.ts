@@ -94,7 +94,9 @@ export async function callReducer(
 		for await (const chunk of llm.stream({
 			provider: options.provider,
 			model: options.model,
-			system: reducerInstructions(),
+			system: options.tight === true
+				? `${reducerInstructions()}\nYour previous attempt exceeded the output budget. Hard limits this attempt: at most 5 evidence items, each quote at most 200 characters; do not repeat log lines outside the quotes.`
+				: reducerInstructions(),
 			messages: [
 				{
 					role: 'user',
