@@ -6,3 +6,5 @@ lib/
 .live-llm-local.yml
 .dsh-probe/
 benchmarks/results/
+.live-bench-*.yml
+.live-task-prompt.txt

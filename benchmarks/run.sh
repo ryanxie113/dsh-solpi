@@ -30,7 +30,7 @@ cd ~/tools/deepseek-harness
 START=$(date +%s)
 set +e
 node --import tsx/esm apps/cli/src/bin.ts --profile "$PROFILE" \
-  --patch "$OLDPWD/cordis.llm-qwen-overlay.yml" \
+  --patch "$OLDPWD/.live-llm-local.yml" \
   "$(cat "$OLDPWD/benchmarks/tasks/$TASK.md")" \
   > "$OUT/stdout.log" 2>&1
 RC=$?
