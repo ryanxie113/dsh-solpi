@@ -31,9 +31,9 @@ export const name = 'solpi-dsh-action-fusion'
 export const inject = ['tools', 'fs', 'systemPrompt', 'shell']
 
 const EDIT_THEN_RUN_DESCRIPTION =
-  'Command to run next on this file after the edit succeeds — e.g. run, build, start/restart, install, or check it; optional timeout in seconds. Skipped if the edit fails; a non-zero exit is reported but keeps the edit.'
+  'Verification or follow-up command executed in the SAME tool call as this edit — one round trip instead of two. When the task requires running tests/build/checks after modifying code, ALWAYS put that command here instead of issuing a separate bash call afterwards. Skipped if the edit fails; a non-zero exit is reported but keeps the edit.'
 const WRITE_THEN_RUN_DESCRIPTION =
-  'Command to run next on this file after the write succeeds — e.g. run, build, start/restart, install, or check it; optional timeout in seconds. Skipped if the write fails; a non-zero exit is reported but keeps the write.'
+  'Verification or follow-up command executed in the SAME tool call as this write — one round trip instead of two. When the task requires running tests/build/checks after creating files, ALWAYS put that command here instead of issuing a separate bash call afterwards. Skipped if the write fails; a non-zero exit is reported but keeps the write.'
 
 interface ThenRunSchemaValue {
   command?: string
@@ -93,15 +93,17 @@ export async function apply(ctx: ContextLike): Promise<void> {
   const assertUnchangedBeforeCommand = thenRunMod.assertUnchangedBeforeCommand as AssertUnchangedFn
   const runThenCommand = thenRunMod.runThenCommand as RunThenCommandFn
 
+  /** Pure renderer for then_run terminal markers (emission lives in the pipeline). */
   function markerFor(status: string): string {
-    void logEvent({ kind: 'af-then-run', status })
     return status === 'succeeded' ? thenRunMod.THEN_RUN_SUCCEEDED as string : thenRunMod.THEN_RUN_FAILED as string
   }
 
   /** Append the then_run suffix lines to the base model-facing text. */
-  function withThenRunSuffix(baseText: string, value: { thenRun?: { status: string, output?: string } | undefined }): TextBlock[] {
+  function withThenRunSuffix(baseText: string, value: { thenRun?: { status: string, output?: string } | undefined, afCoach?: string }): TextBlock[] {
     const t = value.thenRun
-    if (t === undefined) return [{ type: 'text', text: baseText }]
+    if (t === undefined) {
+      return [{ type: 'text', text: value.afCoach === undefined ? baseText : `${baseText}\n\n${value.afCoach}` }]
+    }
     const lines = [baseText, '', markerFor(t.status)]
     if (t.output !== undefined && t.output.length > 0) lines.push(t.output)
     return [{ type: 'text', text: lines.join('\n') }]
@@ -150,13 +152,17 @@ export async function apply(ctx: ContextLike): Promise<void> {
       } catch (error) {
         if (thenRun !== undefined) {
           const message = error instanceof Error ? error.message : String(error)
-          void logEvent({ kind: 'af-then-run', status: 'skipped', reason: 'guard-mismatch' })
+          void logEvent({ kind: 'af-then-run', status: 'skipped', reason: 'guard-mismatch', session: exec.agent?.session.id })
           throw new Error(`${message}\n\n${thenRunMod.THEN_RUN_SKIPPED as string} The file mutation did not complete successfully; the command was not run.`)
         }
         throw error
       }
       if (thenRun === undefined || thenRun.command === undefined || thenRun.command.trim().length === 0) {
-        return value
+        // Runtime coach: models (observed on GLM Flash, benchmark T2) ignore the
+        // then_run schema field and fall back to a separate bash round trip.
+        // A per-call nudge in the tool result shapes the behavior far better
+        // than prose in the tool description alone. Always on; zero config.
+        return { ...value, afCoach: AF_COACH_TEXT }
       }
       try {
         await assertUnchangedBeforeCommand(absPath)
@@ -170,6 +176,7 @@ export async function apply(ctx: ContextLike): Promise<void> {
         exec.agent?.session.header.cwd,
         exec.signal,
       )
+      void logEvent({ kind: 'af-then-run', status: String(outcome.status), session: exec.agent?.session.id })
       return { ...value, thenRun: outcome }
     })
   }
@@ -182,7 +189,7 @@ export async function apply(ctx: ContextLike): Promise<void> {
       ? ''
       : 'Use the write tool to create files or completely replace file contents. Existing files are overwritten, so read an existing file first (the default fs-observation-policy requires it)'
         + ((ctx.tools as ToolsView).get('edit', scope) === undefined ? '' : ' and prefer edit for targeted changes')
-        + '. Optionally pass then_run to verify the result with one command in the same turn.'
+        + '. Whenever you would run a test/build/check right after modifying a file, pass it as then_run in the SAME edit/write call instead of a separate bash call.'
       ,
   })
 
@@ -208,6 +215,7 @@ export async function apply(ctx: ContextLike): Promise<void> {
           before: { required: true, oneOf: [{ type: 'string' }, { type: 'null' }] },
           after: { type: 'string', required: true },
           thenRun: thenRunOutputSchema,
+          afCoach: { type: 'string' },
         },
       },
       render: (_args: unknown, value: WriteValueLike) =>
@@ -289,6 +297,7 @@ export async function apply(ctx: ContextLike): Promise<void> {
           before: { type: 'string', required: true },
           after: { type: 'string', required: true },
           thenRun: thenRunOutputSchema,
+          afCoach: { type: 'string' },
         },
       },
       render: (args: { replace_all?: boolean }, value: EditValueLike) =>
@@ -390,8 +399,12 @@ type RunThenCommandFn = (shell: never, thenRun: { command: string, timeout?: num
   output?: string
   exitCode?: number | null
 }>
-type WriteValueLike = { path: string, before: string | null, after: string, thenRun?: { status: string, output?: string } | undefined }
-type EditValueLike = { path: string, before: string, after: string, thenRun?: { status: string, output?: string } | undefined }
+/** Runtime coach appended to unfused mutation results (see fusedExecute). */
+const AF_COACH_TEXT =
+  '[af-coach] This mutation ran without then_run. If the next step is a verification/build/test command, re-issue the same mutation with then_run to fuse both steps into one call.'
+
+type WriteValueLike = { path: string, before: string | null, after: string, thenRun?: { status: string, output?: string } | undefined, afCoach?: string }
+type EditValueLike = { path: string, before: string, after: string, thenRun?: { status: string, output?: string } | undefined, afCoach?: string }
 type TextBlock = { type: 'text', text: string }
 type importWriteParse = (args: { file_path: string, content: string }) => { filePath: string, content: string }
 type importEditParse = (args: { file_path: string, old_string: string, new_string: string, replace_all?: boolean }) => { filePath: string, oldString: string, newString: string, replaceAll: boolean }

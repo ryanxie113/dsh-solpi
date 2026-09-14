@@ -9,6 +9,6 @@
 4. 运行 npm test，根据失败详情修复 4 个 src 实现中的 bug（不许改 test）
 5. 最后再次 npm test 直到全部通过（pass 12），报告最终结果
 
-硬性要求：每一次 edit/write 修改文件的调用，都必须使用该工具的 thenRun 参数把后续的验证命令
+硬性要求：每一次 edit/write 修改文件的调用，都必须使用该工具的 then_run 参数把后续的验证命令
 （如 npx vitest run / node --experimental-strip-types --test）直接串联在同一次调用里完成，
 禁止"先改文件、再单独发命令跑测试"的两步式操作；所有命令输出完整保留供分析。

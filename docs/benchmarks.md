@@ -126,10 +126,31 @@ T4 后实施修复：breakeven 分子计入 summarizer 自身执行成本
 + plan 工具注入。gate 现在会在长 horizon/大 archive 时才放行压缩——与设计意图一致。
 需更保守可将 `summarizerCostScale` 上调或 `firstCompactionRequestScale` 归一。
 
+## AF 幻觉合规修复（T2 复测）
+
+两段式修复后 AF 从完全失效到 100% 兑现：
+
+1. **静态层**：then_run 描述改为行动导向（“one round trip instead of two / ALWAYS put that
+   command here”）；benchmark 提示词参数名统一为 schema 真实字段 `then_run`（snake_case）。
+2. **运行时教练**：edit/write 未带 then_run 时在 tool result 尾部追加 `[af-coach]` 提示行
+   （零配置；中途曾因变量未定义报错——讽刺的是该报错本身就把模型逼上了正道，错误反馈的
+   行为塑形力强于描述文本，已作为观察记录在案）。
+
+| 阶段 | 真实链式融合 | af-then-run 遥测 | requests |
+|---|---|---|---|
+| 修正前 | **0/13** | 0 且无 session 字段 | — |
+| 描述强化后 | 0/13（仍幻觉） | — | — |
+| + 运行时 coach | **13/13** | 26 条 | 12 |
+| 终版（埋点补 session） | 13/13，coach 触发 0 次 | 13 条全带 session | **11** |
+
+终版质量 pass 12，requests 反超 vanilla（14）。遥测埋点同时重构：af-then-run 从渲染层
+迁至 fused pipeline 执行点并携带 session id，渲染函数回归纯函数。
+
 ## 待办
 
 - [x] T2 已跑：AF 零触发（GLM Flash 幻觉式合规，telemetry 抓到铁证）
 - [x] T3 已跑：38KB 文档记忆问答，压缩后 8/8 保真成立但时长 ×4
 - [ ] 提高 n（≥3 取中位）；补 inputTokens 计量通道（adapter usage 不落 session 流，
       可从 telemetry occ-gate writeTokens 序列近似）
-- [ ] 把"summarizer 成本计入 breakeven"作为第四条上游提案候选（本轮实测的直接产物）
+[x] summarizer 成本已入 breakeven（见经济修正验证节）；第四提案转为已落地修复
+- [ ] OP–EPR 层叠协调（T4：1 applied / 26 skip，spill 前置挤压 EPR 作用域）——Discussion 追评的最后一个前置
