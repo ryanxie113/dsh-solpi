@@ -110,6 +110,22 @@ OCC 是“质量无损但纯亏时间”的状态；它的价值区在窗口/成
 3. 插件的目标场景收敛假设（T4 后修订）：受限窗口（<32k）或高单价输入 token 场景；
    262k 充足窗口下全场景默认关闭 OCC 为最优策略。
 
+## 经济学修正验证（T1 复测，summarizer 成本入账）
+
+T4 后实施修复：breakeven 分子计入 summarizer 自身执行成本
+（`(archiveTokens + memoTokens) × summarizerCostScale=1`）。同任务 T1 solpi 臂复跑：
+
+| | 修正前 | 修正后 |
+|---|---|---|
+| gate 判定分布 | economic×12 | **deferred_economic×10**, economic×1, non_positive_saving×1 |
+| 压缩落地 epoch | 5 | **1** |
+| 总时长 | 277.5 s | **127.6 s**（vanilla 基线 95.7 s）|
+| 任务质量 | ✅ | ✅ |
+
+压缩税从 3x 降至 ~33%；残余差异 = 单次首压（firstCompactionRequestScale=2 攤销后的擦边决策）
++ plan 工具注入。gate 现在会在长 horizon/大 archive 时才放行压缩——与设计意图一致。
+需更保守可将 `summarizerCostScale` 上调或 `firstCompactionRequestScale` 归一。
+
 ## 待办
 
 - [x] T2 已跑：AF 零触发（GLM Flash 幻觉式合规，telemetry 抓到铁证）

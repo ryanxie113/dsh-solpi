@@ -1,8 +1,12 @@
 /**
- * SoL-Pi Online Context Compact economics — verbatim-fidelity port of
- * solpi-ext online-context-compact/economics.ts (pure functions, zero
- * platform dependencies). Reason vocabulary and gate order preserved exactly:
- * any behavioral divergence here invalidates the whole mechanism comparison.
+ * SoL-Pi Online Context Compact economics — pure functions, zero platform
+ * dependencies. Derived from the solpi-ext online-context-compact economics
+ * with one post-benchmark correction (T4 round, 2026-09-14): the summarizer's
+ * OWN execution cost — it must read the archive and emit the memo once per
+ * compaction — is now charged into the breakeven numerator via
+ * `summarizerCostScale`. Without this term every gate overestimates savings
+ * whenever the remaining horizon is short (the compaction-storm pathology
+ * observed in benchmarks T1–T4). Reason vocabulary and gate order preserved.
  */
 
 export type CompactionEconomics = {
@@ -11,6 +15,9 @@ export type CompactionEconomics = {
 	readonly windowReserveTokens: number
 	readonly firstCompactionRequestScale: number
 	readonly subsequentCompactionMargin: number
+	/** Weight applied to (archiveTokens + memoTokens) as the summarizer's own
+	 *  one-shot execution cost charged against expected savings. */
+	readonly summarizerCostScale: number
 }
 
 export const DEFAULT_COMPACTION_ECONOMICS: CompactionEconomics = Object.freeze({
@@ -19,6 +26,7 @@ export const DEFAULT_COMPACTION_ECONOMICS: CompactionEconomics = Object.freeze({
 	windowReserveTokens: 16_384,
 	firstCompactionRequestScale: 2,
 	subsequentCompactionMargin: 1.5,
+	summarizerCostScale: 1,
 })
 
 export type CompactionReason =
@@ -151,13 +159,16 @@ export function decideCompaction(input: {
 	const savingTokens = input.archiveTokens - input.memoTokens
 	const incrementalCacheCostRatio
 		= input.cacheWriteReadRatio === null ? null : Math.max(0, input.cacheWriteReadRatio - 1)
+	// One-shot summarizer execution cost: read the archive, emit the memo.
+	const summarizerCostTokens
+		= (input.archiveTokens + input.memoTokens) * input.economics.summarizerCostScale
 	const breakevenRequests
 		= savingTokens > 0 && incrementalCacheCostRatio !== null
-			? (input.writeTokens * incrementalCacheCostRatio) / savingTokens
+			? ((input.writeTokens * incrementalCacheCostRatio) + summarizerCostTokens) / savingTokens
 			: null
 	const combinedBreakevenRequests
 		= savingTokens > 0 && incrementalCacheCostRatio !== null
-			? (input.carriedDebtTokens + input.writeTokens * incrementalCacheCostRatio) / savingTokens
+			? ((input.carriedDebtTokens + input.writeTokens * incrementalCacheCostRatio) + summarizerCostTokens) / savingTokens
 			: null
 	const firstCompaction = input.priorCompactionCount === 0
 	const effectiveHorizonRequests
