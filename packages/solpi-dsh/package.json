@@ -1,7 +1,7 @@
 {
   "name": "solpi-dsh",
   "version": "0.1.0",
-  "description": "Port of SoL-Pi's four harness efficiency mechanisms (Action Fusion, ObservationPack, Evidence-Preserving Reducer, Online Context Compact) as a DeepSeek Harness bundle.",
+  "description": "Four harness efficiency mechanisms (Action Fusion, ObservationPack, Evidence-Preserving Reducer, Online Context Compact) as a DeepSeek Harness bundle.",
   "license": "MIT",
   "type": "module",
   "main": "lib/online-context-compact.mjs",

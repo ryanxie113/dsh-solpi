@@ -1,10 +1,10 @@
-# solpi-dsh — SoL-Pi 四机制 × DeepSeek Harness 移植
+# solpi-dsh — DeepSeek Harness 效率四机制
 
 <p align="center">
   <img src="./dsh_solpi.png" alt="solpi-dsh cover: Action Fusion · ObservationPack · Evidence-Preserving Reducer · Online Context Compact" width="720">
 </p>
 
-> 把 pi（SoL-Pi）的四个效率机制移植为 dsh 树外插件：**Action Fusion**（编辑+跟进命令融合）、
+> 为 DeepSeek Harness 的长任务会话提供四个效率机制：**Action Fusion**（编辑+跟进命令融合）、
 > **ObservationPack**（大输出豁免压缩）、**Evidence-Preserving Reducer**（保证据诊断约简）、
 > **Online Context Compact**（在线上下文经济压缩）。
 
@@ -41,7 +41,7 @@
 dsh plugin --profile <name> add ./packages/solpi-dsh
 
 # GitHub 直装（首次需在 profile 的 pnpm-workspace.yaml 里 allowBuilds）
-dsh plugin --profile <name> add github:<you>/solpi-dsh#<sha>
+dsh plugin --profile <name> add github:ryanxie113/dsh-solpi#<sha>
 
 # npm / tarball（最顺滑，无需构建权限）
 dsh plugin --profile <name> add solpi-dsh
@@ -50,7 +50,7 @@ dsh plugin --profile <name> add ./solpi-dsh-0.1.0.tgz
 
 安装后 boot 即自动挂载四机制并接管 stock tool-fs / compaction-basic 行（详见包内
 `cordis.patch.yml`）。LLM provider/model 等环境配置仍由用户 patch/profile 提供——
-参考仓库根 `cordis.phase-e-web-long.yml` 的 llm 段。
+参考仓库根 `cordis.llm-qwen-overlay.yml` 的 llm 段。
 
 > **region 依赖说明**：OCC 的区间选择复用 compaction-basic 的 region 实现。monorepo
 > 源码检出形态直接可达；纯 npm 形态需上游公开该导出面后才可用（见
@@ -72,8 +72,7 @@ dsh plugin --profile <name> add ./solpi-dsh-0.1.0.tgz
 ```
 
 EPR 运行时依赖 summarizer 服务；OCC 深度复用 compaction-basic 的 region 压缩实现
-（动态导入其 `src/region.ts`）。完整可跑样例见 `cordis.phase-{c,d,e,e-web-long}.yml`
-与根目录 `solpi-test.sh`。
+（动态导入其 `src/region.ts`）。完整可跑样例见仓库根 overlay 文件与 `solpi-test.sh`。
 
 ## 存储
 
@@ -114,14 +113,14 @@ done
 
 当前 46 断言全绿。
 
-## 已知偏差（相对 pi 原版）
+## 设计取舍
 
-1. **EPR 诊断族扩展**（registered deviation, spec §10.3）：pi v1 家族逐字保留，
-   追加 `node --test` 族与 `npx tsx --test`。动机：session-dfabc 观察到裸
-   `node --test` 产生未约简的大段诊断输出。
-2. **echo 形态理论误报不特判**：`echo npm test` 在 pi 原版同样命中——保真优先。
-3. **遥测为本插件新增**（pi 无此机制）：动机是 stdout 日志随重启蒸发
-   （session-dfabc 取证教训），详见 spec §11。
+1. **诊断命令族保守匹配**：前缀 token 匹配意味着 `echo npm test` 这类回显形态
+   也会命中——与整个插件「宁多看一眼、不漏真故障」的取向一致，不做特判。
+2. **遥测内建而非可选**：stdout 日志随进程重启蒸发，长任务的取证需要常驻数据面；
+   所有事件 fail-open，关闭它没有收益。
+3. **组合分层不重复造轮子**：spill-policy 先收敛大输出、EPR 再收敛诊断洪峰，
+   OCC 的经济门工作在两者之后——压的是会话骨架而不是原始洪峰。
 
 ## 已知边界
 

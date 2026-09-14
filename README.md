@@ -1,28 +1,43 @@
 # dsh-solpi
 
-把 [SoL-Pi](https://github.com/NVlabs/SoL-Pi) 在 pi 上验证过的四个效率机制移植到 DeepSeek Harness (dsh) 的插件包。
+为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 打造的效率增强插件包：
+让长任务会话更快、更省、更可观测。
 
-- **机制清单**：Action Fusion · ObservationPack · Evidence-Preserving Reducer · Online Context Compact（各带独立配置开关，默认全关）
-- **目标内核**：dsh 锁定 `c291e7961a515f6d7af9304e7fd1d257929aef26`（developer preview，升级需重跑全部验收）
-- **参考实现**：`~/tools/solpi-ext` @ `74f6f97b`（MIT，NVlabs 原作）
-- **项目管理**：见 llm-wiki `wiki/projects/dsh-solpi-port.md`（阶段清单 Phase A–E、验收协议、进展记录）
+## 四个机制
 
-## 验收协议（照搬 SoL-Pi 方法论）
+| 机制 | 解决什么问题 |
+|---|---|
+| **Action Fusion** | 编辑之后要手动跟进命令？改文件与跑测试在同一个工具调用内完成 |
+| **ObservationPack** | 规划阶段需要看完整代码？大段观察免于预览裁剪 |
+| **Evidence-Preserving Reducer** | 万行测试日志撑爆上下文？压成一页保引用回执，fatal 行仍可逐字引用 |
+| **Online Context Compact** | 上下文只涨不缩？按 token 经济学决定何时压缩、留多少 |
 
-- 训练/隔离 held-out 双 split；终审失败候选不回流为反馈
-- 能力地板：能力指标全部 ≥ 预申报容差 ∧ 至少一项效率指标提升
-- all-enabled 组合校验脚本（对应 `check-sol-pi-config.mjs --require-all-enabled`）
+每个机制独立开关，默认全关；组合启用时天然分层协作（详见下文架构观察）。
 
 ## 快速开始
 
 ```bash
-# 探针环境（无需构建 dsh monorepo）
-npx @deepseek-ai/dsh web
+# 将本包作为 bundle 安装到某个 profile
+dsh plugin --profile <name> add github:ryanxie113/dsh-solpi
 
-# 插件装载（Phase C 起使用）
-dsh plugin install ./packages/solpi-dsh
+# 启动即自动挂载四机制（stock tool-fs / compaction-basic 由 bundle 层接管）
+dsh --profile <name>
 ```
+
+LLM provider/model 等环境配置由你的 profile 提供。安装细节三通道见
+[`packages/solpi-dsh/README.md`](packages/solpi-dsh/README.md)。
+
+## 包结构与文档
+
+- [`packages/solpi-dsh/`](packages/solpi-dsh/) — 插件本体（功能矩阵 / 配置表 /
+  存储布局 / 遥测排障 / 设计取舍）
+- [`docs/upstream-proposals.md`](docs/upstream-proposals.md) — 回馈上游的三份提案草稿
+- [`docs/plans/dsh-solpi-spec.md`](docs/plans/dsh-solpi-spec.md) — 完整设计规格与决策记录
+
+## 兼容性
+
+基于 dsh `0.1.5-rc.2`（developer preview）开发与验收；dsh 升级后需重跑对照。
 
 ## License
 
-MIT。SoL-Pi 上游代码若被引用，保留其版权与署名（THIRD_PARTY_NOTICES 待补）。
+MIT。本项目为独立实现，未包含其他项目的代码。
