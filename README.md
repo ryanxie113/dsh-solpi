@@ -31,8 +31,23 @@ LLM provider/model 等环境配置由你的 profile 提供。安装细节三通�
 
 - [`packages/solpi-dsh/`](packages/solpi-dsh/) — 插件本体（功能矩阵 / 配置表 /
   存储布局 / 遥测排障 / 设计取舍）
+- [`docs/benchmarks.md`](docs/benchmarks.md) — 四轮八臂 A/B 基准：数据支撑的使用边界
 - [`docs/upstream-proposals.md`](docs/upstream-proposals.md) — 回馈上游的三份提案草稿
 - [`docs/plans/dsh-solpi-spec.md`](docs/plans/dsh-solpi-spec.md) — 完整设计规格与决策记录
+
+## 何时启用各机制（基准结论）
+
+四轮 A/B/归因基准（T1–T4，含同种子长程任务）给出了可操作的使用边界：
+
+- **OCC 在线压缩**：在受限上下文窗口（≲32k）或按输入 token 计费敏感的环境下收益显著——
+  基准证实其可将每步发送 token 钉在有界带内（25k 峰值 → 16–19k 震荡），且压缩后信息保真成立
+  （38KB 文档压缩后精确数字问答 8/8）。在大窗口且不计费的环境下 gate 现在会自动判定
+  `deferred_economic` 待机，零压缩税。
+- **EPR 证据回执**：适用于 ≥4KB 的诊断型命令输出族；更小的输出正确直通。与 OP 层叠时大输出
+  会先被 OP 溢出，属预期分工。
+- **Action Fusion**：在短而聚焦的修改-验证循环中链式触发表现最好；小模型对链式参数的跟随
+  稳定性有限，建议配合明确的提示词约定。
+- 所有 gate 决策均有 `occ-gate` 遥测事件（writeTokens / breakeven / reason）可事后审计。
 
 ## 兼容性
 
