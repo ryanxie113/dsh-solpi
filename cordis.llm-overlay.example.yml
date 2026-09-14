@@ -7,7 +7,7 @@
     providers:
       qwen-proxy:
         api: openai-completions
-        baseURL: http://<QWEN_PROXY_HOST>:30000/v1
+        baseURL: http://YOUR-QWEN-PROXY-HOST:30000/v1
         apiKeyEnv: SOLPI_QWEN_PROXY_DUMMY_KEY
         models:
           - id: GLM-5.3-Flash

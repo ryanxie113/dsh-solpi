@@ -2,3 +2,7 @@
 node_modules/
 dist/
 lib/
+.live-llm-local.yml
+.live-llm-local.yml
+.dsh-probe/
+benchmarks/results/
