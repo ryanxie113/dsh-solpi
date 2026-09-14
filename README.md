@@ -41,6 +41,7 @@ LLM provider/model 等环境配置由你的 profile 提供。安装细节三通�
 ## Community
 
 - 介绍帖：[deepseek-ai/deepseek-harness#6577](https://github.com/deepseek-ai/deepseek-harness/discussions/6577)（Show Your Plugins!）
+- 社区索引站已收录并完成认领：[DeepSeek-Harness Plugin Hub](https://www.deepseekharnessmarket.site/plugin/ryanxie113/dsh-solpi)
 
 ## License
 
