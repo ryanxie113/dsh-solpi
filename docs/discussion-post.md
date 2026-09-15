@@ -82,3 +82,54 @@ especially if you try it against different providers or larger windows.
 
 1. 把帖子 URL 回填到本仓库 README（Community 一节）与 `docs/plugin-packaging-notes.md`
 2. 监控回复；若维护者回应提案，按其反馈修订 docs/upstream-proposals.md 后提 issue
+
+---
+
+## 追评草稿 #2（benchmark 数据 + 容错修复轮，2026-09-15）
+
+> 发布位置：Discussion #6577 原帖下的评论（英文）
+> 触发条件：两前置（thenRun 强化、EPR/OCC 层叠疑云）均已解决 ✅
+
+### Comment body (EN, paste-ready)
+
+**Follow-up: benchmark results and robustness fixes after live-fire testing**
+
+We ran a four-task benchmark suite against the plugin in both arms
+(vanilla dsh vs dsh + solpi-dsh) on GLM Flash via a local gateway — tasks:
+a red→green diagnosis loop, a chained edit session, a 38KB document recall Q&A,
+and a 12-module/36-case long-haul session. Full data & methodology:
+[docs/benchmarks.md](https://github.com/ryanxie113/dsh-solpi/blob/main/docs/benchmarks.md).
+
+Three findings worth sharing, because they generalize beyond our plugin:
+
+1. **Compaction economics need to charge the summarizer.** Our first gate design
+   compared archived tokens vs write tokens but ignored the summarizer's own
+   execution cost. On short sessions this produced "compaction storms": the gate
+   kept approving marginal compactions whose cost exceeded their savings.
+   Fixing the break-even formula (adding `(archiveTokens + memoTokens) × summarizerCostScale`)
+   cut one benchmark arm from 277s → 116s with zero behavioral difference —
+   same task quality, strictly less spent.
+2. **Models claim compliance; telemetry disagrees.** Our then-run fusion was
+   silently unused by the model for a whole run while stdout *claimed* it was used.
+   The fix that worked was not prose in the tool description but a runtime coach:
+   a per-call nudge appended when the model skips `then_run`. Error-shaped feedback
+   beats description text. After the fix: real fused chains verified in the event
+   stream, not just in stdout.
+3. **Small-model output blowouts are systemic.** Both our EPR reducer calls and
+   OCC summarizer calls occasionally ramble past their token cap on GLM Flash,
+   killing receipts/checkpoints. Two cheap mitigations now shipped: a tightened
+   retry after a max-tokens finish, and a circuit breaker that stops re-approving
+   compaction after consecutive summarizer failures instead of burning retries.
+
+Honest limits: single-provider validation; benefits are bounded by context-window
+economics — with a large free window (262k) the compact gate mostly stays shut
+by design, and the value case is constrained windows or input-token-billed APIs.
+
+The post-fix numbers vs pre-fix baselines: T1 −58%, T2 ≈−48%, T3 −33%, and the
+long-haul task −80% (1168s → 230s, all 36 cases still green). Worth being honest
+about that last one: most of it came from the system *learning to stop intervening* —
+the economic gate rejected marginal compactions, and after two summarizer blowouts
+the circuit breaker blocked the remaining 40 gate evaluations instead of burning
+retries. On a large free context window, doing nothing was the fastest policy,
+and the plugin now discovers that on its own. As always, raw data over vibes —
+everything is in the repo.
