@@ -87,7 +87,7 @@ especially if you try it against different providers or larger windows.
 
 ## 追评草稿 #2（benchmark 数据 + 容错修复轮，2026-09-15）
 
-> 发布位置：Discussion #6577 原帖下的评论（英文）
+> ✅ 已发布：https://github.com/deepseek-ai/deepseek-harness/discussions/6577#discussioncomment-18443325
 > 触发条件：两前置（thenRun 强化、EPR/OCC 层叠疑云）均已解决 ✅
 
 ### Comment body (EN, paste-ready)
