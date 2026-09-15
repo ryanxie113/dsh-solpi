@@ -401,7 +401,7 @@ type RunThenCommandFn = (shell: never, thenRun: { command: string, timeout?: num
 }>
 /** Runtime coach appended to unfused mutation results (see fusedExecute). */
 const AF_COACH_TEXT =
-  '[af-coach] This mutation ran without then_run. If the next step is a verification/build/test command, re-issue the same mutation with then_run to fuse both steps into one call.'
+  '[af-coach] This mutation ran without then_run, so your follow-up verification needed a separate call. Next time fuse them: re-issue this same mutation and add "then_run": {"command": "<the exact test/build command you were about to run next>"}. The command executes immediately after the file lands.'
 
 type WriteValueLike = { path: string, before: string | null, after: string, thenRun?: { status: string, output?: string } | undefined, afCoach?: string }
 type EditValueLike = { path: string, before: string, after: string, thenRun?: { status: string, output?: string } | undefined, afCoach?: string }

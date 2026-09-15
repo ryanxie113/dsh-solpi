@@ -192,6 +192,21 @@ vanilla 臂未动不重跑；solpi 臂重测 vs 各自历史基线。额外发�
 诚实的另一面：−80% 主要来自"停止无效干预"，不是新机制创造了价值。
 EPR 本轮 26 次 skip 全部判定健康（23 真 below-min-bytes + 3 not-diagnostic 带 cmdPrefix）。
 
+## T2 稳定性实验：coach 内联示例（2026-09-15，N=3 vs N=3）
+
+then_run 采纳率轮次间波动（0↔13 次/轮）被定位到教练文案缺形状示范。
+多轮聚合基建 `benchmarks/aggregate.py`（metrics.json + mtime 遥测窗口切分）支撑本实验。
+
+| 组（各 3 轮） | wall | 零融合轮数 | 成功融合/轮 |
+|---|---|---|---|
+| coach v1 抽象指令 | 288.9s [170–350] | 2/3 | 2.0 [0–6] |
+| coach v2 +内联 JSON 示例 | 240.8s [235–248] | 0/3 | 10.0 [6–12] |
+
+要点：v1 教练触发 10/7 次而模型照旧手动 bash×15——错误形状的反馈必须带
+可抄的 schema 形状才塑得动 GLM Flash；v2 方差区间从 180s 收窄到 13s。
+af-then-run 的 failed 高占比属设计语义（写入即验证暴露未完成状态），非缺陷。
+诚实边界：N=3，幅度置信度有限，方向一致性是该结论的主要依据。
+
 ### 本轮新发现与修复：OCC summarizer 截断风暴
 
 T3 首轮复跑中 5 次 compaction 全部死于 `summarization truncated at the token cap`
