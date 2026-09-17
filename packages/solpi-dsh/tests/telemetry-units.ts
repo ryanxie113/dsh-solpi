@@ -102,5 +102,20 @@ await test('T4 fail-open: unwritable home counts drops and never rejects', async
 	assert.equal(telemetryStats().droppedEvents >= 1, true, 'drop counted')
 })
 
+await test('T2b af-then-run event carries optional exitCode', async () => {
+	telemetryResetForTests()
+	const home = freshHome()
+	process.env.DSH_HOME = home
+	await logEvent({ kind: 'af-then-run', status: 'failed', exitCode: 2 })
+	await logEvent({ kind: 'af-then-run', status: 'skipped' })
+	await telemetryFlush()
+	const lines = readFileSync(join(home, 'sol-pi', 'telemetry', EVENTS_FILE), 'utf8').trim().split('\n')
+	const failed = JSON.parse(lines[0]) as Record<string, unknown>
+	assert.equal(failed.status, 'failed')
+	assert.equal(failed.exitCode, 2, 'failed leg must carry its exitCode for forensics')
+	const skipped = JSON.parse(lines[1]) as Record<string, unknown>
+	assert.equal('exitCode' in skipped, false, 'undefined exitCode must not be emitted as null/noise')
+})
+
 console.log(results.join('\n'))
 if (process.exitCode !== 1) console.log('# telemetry-units all passed')

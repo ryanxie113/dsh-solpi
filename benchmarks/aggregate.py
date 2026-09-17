@@ -52,6 +52,7 @@ def slice_events(events, start_dt, end_dt):
 
 def summarize_run(events):
     gates = [e for e in events if e['kind'] == 'occ-gate']
+    epr_applied = [e for e in events if e['kind'] == 'epr-applied']
     reasons = Counter(e.get('reason') for e in gates)
     af = [e for e in events if e['kind'] == 'af-then-run']
     skips = Counter(e.get('reason') for e in events if e['kind'] == 'epr-skip')
@@ -60,6 +61,7 @@ def summarize_run(events):
         'requests_gate_checks': len(gates),
         'compaction_decisions': dict(reasons),
         'epochs_landed': epochs,
+        'epr_applied': len(epr_applied),
         'af_then_run': dict(Counter(e['status'] for e in af)),
         'epr_skip': dict(skips),
     }
@@ -110,7 +112,8 @@ def main():
             fused_ok = s['af_then_run'].get('succeeded', 0)
             per_run_af_succeeded.append(fused_ok)
             print(f"run{i+1} {d.name[-6:]}: wall={wall}s requests={rq} "
-                  f"af={s['af_then_run']} epochs={s['epochs_landed']} gates={s['compaction_decisions']}")
+                  f"af={s['af_then_run']} epochs={s['epochs_landed']} "
+                  f"eprApplied={s['epr_applied']} gates={s['compaction_decisions']}")
         ok_walls = [w for w in walls if w is not None]
         ok_reqs = [r for r in reqs if r is not None]
         def fmt(vals):

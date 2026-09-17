@@ -176,7 +176,7 @@ export async function apply(ctx: ContextLike): Promise<void> {
         exec.agent?.session.header.cwd,
         exec.signal,
       )
-      void logEvent({ kind: 'af-then-run', status: String(outcome.status), session: exec.agent?.session.id })
+      void logEvent({ kind: 'af-then-run', status: String(outcome.status), ...(outcome.exitCode === undefined ? {} : { exitCode: outcome.exitCode }), session: exec.agent?.session.id })
       return { ...value, thenRun: outcome }
     })
   }
